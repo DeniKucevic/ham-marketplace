@@ -3,6 +3,7 @@ import { DeleteListingButton } from "@/components/delete-listing-button";
 import { IncrementViews } from "@/components/increment-views";
 import { ListingImageGallery } from "@/components/listing-image-gallery";
 import { Navbar } from "@/components/navbar";
+import { ReportListingButton } from "@/components/report-listing-button";
 import { ShareListingButton } from "@/components/share-listing-button";
 import { getDisplayName } from "@/lib/display-name";
 import { createClient } from "@/lib/supabase/server";
@@ -217,6 +218,15 @@ export default async function ListingDetailPage({ params }: Props) {
                   title={listing.title}
                 />
               </div>
+
+              {!isOwner && user && (
+                <div className="mt-2">
+                  <ReportListingButton
+                    listingId={listing.id}
+                    listingTitle={listing.title}
+                  />
+                </div>
+              )}
 
               {/* Contact Seller - samo za ulogovane */}
               {!isOwner && user && (
