@@ -199,10 +199,16 @@ export type Database = {
           callsign_verified: boolean | null
           created_at: string | null
           display_name: string | null
+          email: string | null
           id: string
           location: unknown
+          location_city: string | null
+          location_country: string | null
+          phone: string | null
           qth_locator: string | null
           rating: number | null
+          show_email: boolean | null
+          show_phone: boolean | null
           total_purchases: number | null
           total_sales: number | null
           updated_at: string | null
@@ -214,10 +220,16 @@ export type Database = {
           callsign_verified?: boolean | null
           created_at?: string | null
           display_name?: string | null
+          email?: string | null
           id: string
           location?: unknown
+          location_city?: string | null
+          location_country?: string | null
+          phone?: string | null
           qth_locator?: string | null
           rating?: number | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
           total_purchases?: number | null
           total_sales?: number | null
           updated_at?: string | null
@@ -229,10 +241,16 @@ export type Database = {
           callsign_verified?: boolean | null
           created_at?: string | null
           display_name?: string | null
+          email?: string | null
           id?: string
           location?: unknown
+          location_city?: string | null
+          location_country?: string | null
+          phone?: string | null
           qth_locator?: string | null
           rating?: number | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
           total_purchases?: number | null
           total_sales?: number | null
           updated_at?: string | null

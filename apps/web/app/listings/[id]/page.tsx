@@ -1,6 +1,9 @@
 import { CopyIdButton } from "@/components/copy-id-button";
+import { DeleteListingButton } from "@/components/delete-listing-button";
+import { IncrementViews } from "@/components/increment-views";
 import { ListingImageGallery } from "@/components/listing-image-gallery";
 import { Navbar } from "@/components/navbar";
+import { ShareListingButton } from "@/components/share-listing-button";
 import { getDisplayName } from "@/lib/display-name";
 import { createClient } from "@/lib/supabase/server";
 import { formatPrice } from "@ham-marketplace/shared";
@@ -15,6 +18,16 @@ export default async function ListingDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
+  // Optional auth - može i bez login-a
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: currentUserProfile } = user
+    ? await supabase.from("profiles").select("*").eq("id", user.id).single()
+    : { data: null };
+
+  // Fetch listing - javno dostupno
   const { data: listing, error } = await supabase
     .from("listings")
     .select(
@@ -35,19 +48,13 @@ export default async function ListingDetailPage({ params }: Props) {
     notFound();
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: currentUserProfile } = user
-    ? await supabase.from("profiles").select("*").eq("id", user.id).single()
-    : { data: null };
-
   const isOwner = user?.id === listing.user_id;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navbar user={user} profile={currentUserProfile} />
+      <IncrementViews listingId={listing.id} />
+      <Navbar user={user} profile={currentUserProfile ?? null} />
+
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Back button */}
         <Link
@@ -77,6 +84,7 @@ export default async function ListingDetailPage({ params }: Props) {
               images={listing.images}
               title={listing.title}
             />
+
             {/* Details */}
             <div className="mt-8 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -199,15 +207,35 @@ export default async function ListingDetailPage({ params }: Props) {
                 {formatPrice(listing.price, listing.currency || "EUR")}
               </div>
               <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {listing.currency}
+                {listing.currency || "EUR"}
               </div>
 
-              {!isOwner && (
+              {/* Share Button */}
+              <div className="mt-4">
+                <ShareListingButton
+                  listingId={listing.id}
+                  title={listing.title}
+                />
+              </div>
+
+              {/* Contact Seller - samo za ulogovane */}
+              {!isOwner && user && (
                 <button className="mt-6 w-full rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
                   Contact Seller
                 </button>
               )}
 
+              {/* Sign in prompt za neulogovane */}
+              {!user && (
+                <Link
+                  href="/sign-in"
+                  className="mt-6 block w-full rounded-md bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                >
+                  Sign in to Contact Seller
+                </Link>
+              )}
+
+              {/* Owner actions */}
               {isOwner && (
                 <div className="mt-6 space-y-2">
                   <Link
@@ -216,9 +244,13 @@ export default async function ListingDetailPage({ params }: Props) {
                   >
                     Edit Listing
                   </Link>
-                  <button className="w-full rounded-md bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
-                    Delete Listing
-                  </button>
+                  <DeleteListingButton
+                    listingId={listing.id}
+                    listingTitle={listing.title}
+                    images={listing.images}
+                    userId={user.id}
+                    variant="default"
+                  />
                 </div>
               )}
             </div>
@@ -232,7 +264,7 @@ export default async function ListingDetailPage({ params }: Props) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">
-                      {getDisplayName(listing.profiles, "Seller")}
+                      {getDisplayName(listing.profiles ?? null, "Seller")}
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -244,12 +276,12 @@ export default async function ListingDetailPage({ params }: Props) {
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                     <span className="ml-1 text-sm font-medium text-gray-900 dark:text-white">
-                      {listing.profiles.rating}
+                      {listing.profiles?.rating || 0}
                     </span>
                   </div>
                 </div>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  {listing.profiles.total_sales} sales
+                  {listing.profiles?.total_sales || 0} sales
                 </p>
               </div>
             </div>
@@ -271,7 +303,7 @@ export default async function ListingDetailPage({ params }: Props) {
                 <div className="flex justify-between">
                   <dt className="text-gray-500 dark:text-gray-400">Views</dt>
                   <dd className="text-gray-900 dark:text-white">
-                    {listing.views}
+                    {listing.views || 0}
                   </dd>
                 </div>
                 <div className="flex justify-between">

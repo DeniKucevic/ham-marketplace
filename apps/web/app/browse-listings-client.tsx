@@ -3,6 +3,7 @@
 import { ListingGridCard } from "@/components/listing-grid-card";
 import { ListingListCard } from "@/components/listing-list-card";
 import { ListingsFilters } from "@/components/listings-filters";
+import { Pagination } from "@/components/pagination";
 import { ViewMode, ViewToggle } from "@/components/view-toggle";
 import type { BrowseListing } from "@/types/listing";
 import Link from "next/link";
@@ -10,10 +11,23 @@ import { useMemo, useState } from "react";
 
 interface Props {
   listings: BrowseListing[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
 }
 
-export function BrowseListingsClient({ listings }: Props) {
+export function BrowseListingsClient({
+  listings,
+  currentPage,
+  totalPages,
+  totalCount,
+}: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem("listings-view-mode", mode);
+  };
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,10 +35,11 @@ export function BrowseListingsClient({ listings }: Props) {
   const [selectedCondition, setSelectedCondition] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
-  // Filter listings
-  const filteredListings = useMemo(() => {
-    return listings.filter((listing) => {
+  // Filter AND Sort listings (client-side filtering on current page)
+  const filteredAndSortedListings = useMemo(() => {
+    const result = listings.filter((listing) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -61,6 +76,32 @@ export function BrowseListingsClient({ listings }: Props) {
 
       return true;
     });
+
+    // Sort
+    switch (sortBy) {
+      case "newest":
+        result.sort(
+          (a, b) =>
+            new Date(b.created_at || 0).getTime() -
+            new Date(a.created_at || 0).getTime()
+        );
+        break;
+      case "oldest":
+        result.sort(
+          (a, b) =>
+            new Date(a.created_at || 0).getTime() -
+            new Date(b.created_at || 0).getTime()
+        );
+        break;
+      case "price_low":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price_high":
+        result.sort((a, b) => b.price - a.price);
+        break;
+    }
+
+    return result;
   }, [
     listings,
     searchQuery,
@@ -68,6 +109,7 @@ export function BrowseListingsClient({ listings }: Props) {
     selectedCondition,
     minPrice,
     maxPrice,
+    sortBy,
   ]);
 
   const clearFilters = () => {
@@ -76,6 +118,7 @@ export function BrowseListingsClient({ listings }: Props) {
     setSelectedCondition([]);
     setMinPrice("");
     setMaxPrice("");
+    setSortBy("newest");
   };
 
   if (!listings || listings.length === 0) {
@@ -116,6 +159,8 @@ export function BrowseListingsClient({ listings }: Props) {
             maxPrice={maxPrice}
             onMinPriceChange={setMinPrice}
             onMaxPriceChange={setMaxPrice}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
             onClearFilters={clearFilters}
           />
         </div>
@@ -126,14 +171,13 @@ export function BrowseListingsClient({ listings }: Props) {
         {/* Header with view toggle */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-gray-600 dark:text-gray-400">
-            {filteredListings.length} listing
-            {filteredListings.length !== 1 ? "s" : ""} found
+            Showing {filteredAndSortedListings.length} of {totalCount} listings
           </p>
-          <ViewToggle value={viewMode} onChange={setViewMode} />
+          <ViewToggle value={viewMode} onChange={handleViewModeChange} />
         </div>
 
         {/* No results */}
-        {filteredListings.length === 0 && (
+        {filteredAndSortedListings.length === 0 && (
           <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center dark:border-gray-600">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               No listings found
@@ -145,22 +189,27 @@ export function BrowseListingsClient({ listings }: Props) {
         )}
 
         {/* Grid View */}
-        {filteredListings.length > 0 && viewMode === "grid" && (
+        {filteredAndSortedListings.length > 0 && viewMode === "grid" && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredListings.map((listing) => (
+            {filteredAndSortedListings.map((listing) => (
               <ListingGridCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}
 
         {/* List View */}
-        {filteredListings.length > 0 && viewMode === "list" && (
+        {filteredAndSortedListings.length > 0 && viewMode === "list" && (
           <div className="space-y-4">
-            {filteredListings.map((listing) => (
+            {filteredAndSortedListings.map((listing) => (
               <ListingListCard key={listing.id} listing={listing} />
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        <div className="mt-8">
+          <Pagination currentPage={currentPage} totalPages={totalPages} />
+        </div>
       </div>
     </div>
   );

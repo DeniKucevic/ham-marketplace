@@ -2,9 +2,10 @@
 
 import { createClient } from "@/lib/supabase/client";
 import {
-    CreateListingSchema,
-    POPULAR_MANUFACTURERS,
-    getModelsByCategory,
+  CreateListingSchema,
+  Database,
+  getModelsByCategory,
+  POPULAR_MANUFACTURERS,
 } from "@ham-marketplace/shared";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -78,142 +79,83 @@ const MODES = [
   "SSTV",
 ];
 
+type Listing = Database["public"]["Tables"]["listings"]["Row"];
+
 interface Props {
   userId: string;
+  listing?: Listing; // If provided = editing, if not = creating
 }
 
-export function CreateListingForm({ userId }: Props) {
+export function ListingForm({ userId, listing }: Props) {
   const router = useRouter();
+  const isEditing = !!listing;
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [selectedBands, setSelectedBands] = useState<string[]>([]);
-  const [selectedModes, setSelectedModes] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [manufacturerValue, setManufacturerValue] = useState("");
-  const [modelValue, setModelValue] = useState("");
+
+  // Images
+  const [existingImages, setExistingImages] = useState<string[]>(
+    listing?.images || []
+  );
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+
+  const [selectedBands, setSelectedBands] = useState<string[]>(
+    listing?.frequency_bands || []
+  );
+  const [selectedModes, setSelectedModes] = useState<string[]>(
+    listing?.modes || []
+  );
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    listing?.category || ""
+  );
+  const [manufacturerValue, setManufacturerValue] = useState(
+    listing?.manufacturer || ""
+  );
+  const [modelValue, setModelValue] = useState(listing?.model || "");
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCategory(e.target.value);
+    setManufacturerValue("");
+    setModelValue("");
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const totalImages =
+      existingImages.length + newImageFiles.length + files.length;
 
-    if (files.length + imageFiles.length > 10) {
+    if (totalImages > 10) {
       setError("Maximum 10 images allowed");
       return;
     }
 
-    setImageFiles((prev) => [...prev, ...files]);
+    setNewImageFiles((prev) => [...prev, ...files]);
 
-    // Create previews
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreviews((prev) => [...prev, reader.result as string]);
+        setNewImagePreviews((prev) => [...prev, reader.result as string]);
       };
       reader.readAsDataURL(file);
     });
   };
 
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCategory = e.target.value;
-    setSelectedCategory(newCategory);
-    setManufacturerValue("");
-    setModelValue("");
+  const removeExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const removeImage = (index: number) => {
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const formData = new FormData(e.currentTarget);
-
-      const supabase = createClient();
-      const imageUrls: string[] = [];
-
-      for (const file of imageFiles) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${userId}/${Date.now()}-${Math.random()}.${fileExt}`;
-
-        const { error: uploadError, data } = await supabase.storage
-          .from("listing-images")
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("listing-images").getPublicUrl(fileName);
-
-        imageUrls.push(publicUrl);
-      }
-
-      // Prepare listing data
-      const listingData = {
-        title: formData.get("title") as string,
-        description: formData.get("description") as string,
-        category: formData.get("category") as string,
-        price: parseFloat(formData.get("price") as string),
-        currency: formData.get("currency") as string,
-        condition: formData.get("condition") as string,
-        images: imageUrls,
-        manufacturer: (formData.get("manufacturer") as string) || undefined,
-        model: (formData.get("model") as string) || undefined,
-        power_output: formData.get("power_output")
-          ? parseInt(formData.get("power_output") as string)
-          : undefined,
-        year_manufactured: formData.get("year_manufactured")
-          ? parseInt(formData.get("year_manufactured") as string)
-          : undefined,
-        frequency_bands: selectedBands.length > 0 ? selectedBands : undefined,
-        modes: selectedModes.length > 0 ? selectedModes : undefined,
-      };
-
-      // Validate with Zod
-      const validated = CreateListingSchema.parse(listingData);
-
-      // Insert into database
-      const { error: dbError, data: listing } = await supabase
-        .from("listings")
-        .insert({
-          ...validated,
-          user_id: userId,
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      router.push(`/listings/${listing.id}`);
-    } catch (err: unknown) {
-      console.error("Create listing error:", err);
-      if (err instanceof ZodError) {
-        setError(err.issues[0]?.message || "Validation error");
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to create listing");
-      }
-    } finally {
-      setLoading(false);
-    }
+  const removeNewImage = (index: number) => {
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const getFilteredModels = () => {
     const categoryModels = getModelsByCategory(selectedCategory);
-
     if (!manufacturerValue || manufacturerValue.length < 2) {
       return categoryModels;
     }
 
-    // Additional filtering based on manufacturer prefix
-    // For example: "Yaesu" manufacturer should show FT-xxx models
     const manufacturerPrefixes: Record<string, string[]> = {
       Yaesu: ["FT", "VX"],
       Icom: ["IC", "ID"],
@@ -234,13 +176,115 @@ export function CreateListingForm({ userId }: Props) {
     };
 
     const prefixes = manufacturerPrefixes[manufacturerValue];
-    if (!prefixes) {
-      return categoryModels;
-    }
+    if (!prefixes) return categoryModels;
 
     return categoryModels.filter((model) =>
       prefixes.some((prefix) => model.startsWith(prefix))
     );
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const supabase = createClient();
+
+      // Upload new images
+      const newImageUrls: string[] = [];
+      for (const file of newImageFiles) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${userId}/${Date.now()}-${Math.random()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("listing-images")
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("listing-images").getPublicUrl(fileName);
+
+        newImageUrls.push(publicUrl);
+      }
+
+      const allImages = [...existingImages, ...newImageUrls];
+
+      // If editing, delete removed images
+      if (isEditing) {
+        const removedImages = (listing.images || []).filter(
+          (img: string) => !existingImages.includes(img)
+        );
+
+        for (const imageUrl of removedImages) {
+          const urlParts = imageUrl.split("/listing-images/");
+          if (urlParts.length === 2) {
+            await supabase.storage.from("listing-images").remove([urlParts[1]]);
+          }
+        }
+      }
+
+      // Prepare data
+      const listingData = {
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        category: formData.get("category") as string,
+        price: parseFloat(formData.get("price") as string),
+        currency: formData.get("currency") as string,
+        condition: formData.get("condition") as string,
+        images: allImages,
+        manufacturer: (formData.get("manufacturer") as string) || undefined,
+        model: (formData.get("model") as string) || undefined,
+        power_output: formData.get("power_output")
+          ? parseInt(formData.get("power_output") as string)
+          : undefined,
+        year_manufactured: formData.get("year_manufactured")
+          ? parseInt(formData.get("year_manufactured") as string)
+          : undefined,
+        frequency_bands: selectedBands.length > 0 ? selectedBands : undefined,
+        modes: selectedModes.length > 0 ? selectedModes : undefined,
+      };
+
+      const validated = CreateListingSchema.parse(listingData);
+
+      if (isEditing) {
+        // Update
+        const { error: dbError } = await supabase
+          .from("listings")
+          .update(validated)
+          .eq("id", listing.id)
+          .eq("user_id", userId);
+
+        if (dbError) throw dbError;
+        router.push(`/listings/${listing.id}`);
+      } else {
+        // Create
+        const { error: dbError, data: newListing } = await supabase
+          .from("listings")
+          .insert({ ...validated, user_id: userId })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+        router.push(`/listings/${newListing.id}`);
+      }
+
+      router.refresh();
+    } catch (err: unknown) {
+      console.error("Listing error:", err);
+      if (err instanceof ZodError) {
+        setError(err.issues[0]?.message || "Validation error");
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError(`Failed to ${isEditing ? "update" : "create"} listing`);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -254,10 +298,54 @@ export function CreateListingForm({ userId }: Props) {
         </div>
       )}
 
-      {/* Images */}
+      {/* Existing Images (only when editing) */}
+      {isEditing && existingImages.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Current Images
+          </label>
+          <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            {existingImages.map((image, index) => (
+              <div key={index} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image}
+                  alt={`Existing ${index + 1}`}
+                  className="h-32 w-full rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeExistingImage(index)}
+                  className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* New Images */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Images (Optional - max 10)
+          {isEditing
+            ? `Add More Images (Optional - max ${
+                10 - existingImages.length
+              } more)`
+            : "Images (Optional - max 10)"}
         </label>
         <div className="mt-2">
           <input
@@ -265,14 +353,19 @@ export function CreateListingForm({ userId }: Props) {
             accept="image/*"
             multiple
             onChange={handleImageChange}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-gray-400 dark:file:bg-blue-900/20 dark:file:text-blue-400"
+            disabled={isEditing && existingImages.length >= 10}
+            className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50 dark:text-gray-400 dark:file:bg-blue-900/20 dark:file:text-blue-400"
           />
         </div>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Upload up to 10 images. Listings with photos get more views!
+        </p>
 
-        {imagePreviews.length > 0 && (
+        {newImagePreviews.length > 0 && (
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {imagePreviews.map((preview, index) => (
+            {newImagePreviews.map((preview, index) => (
               <div key={index} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={preview}
                   alt={`Preview ${index + 1}`}
@@ -280,7 +373,7 @@ export function CreateListingForm({ userId }: Props) {
                 />
                 <button
                   type="button"
-                  onClick={() => removeImage(index)}
+                  onClick={() => removeNewImage(index)}
                   className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
                 >
                   <svg
@@ -318,6 +411,7 @@ export function CreateListingForm({ userId }: Props) {
           required
           minLength={10}
           maxLength={200}
+          defaultValue={listing?.title}
           className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           placeholder="Yaesu FT-991A HF/VHF/UHF All Mode Transceiver"
         />
@@ -336,6 +430,7 @@ export function CreateListingForm({ userId }: Props) {
           name="description"
           rows={6}
           maxLength={5000}
+          defaultValue={listing?.description || ""}
           className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           placeholder="Detailed description of the equipment, condition, included accessories, etc."
         />
@@ -378,6 +473,7 @@ export function CreateListingForm({ userId }: Props) {
             id="condition"
             name="condition"
             required
+            defaultValue={listing?.condition}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             <option value="">Select condition</option>
@@ -406,6 +502,7 @@ export function CreateListingForm({ userId }: Props) {
             required
             min="0"
             step="0.01"
+            defaultValue={listing?.price}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             placeholder="1200.00"
           />
@@ -422,7 +519,7 @@ export function CreateListingForm({ userId }: Props) {
             id="currency"
             name="currency"
             required
-            defaultValue="EUR"
+            defaultValue={listing?.currency || "EUR"}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             {CURRENCIES.map((curr) => (
@@ -473,6 +570,7 @@ export function CreateListingForm({ userId }: Props) {
             id="power_output"
             name="power_output"
             min="1"
+            defaultValue={listing?.power_output || ""}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             placeholder="100"
           />
@@ -491,6 +589,7 @@ export function CreateListingForm({ userId }: Props) {
             name="year_manufactured"
             min="1900"
             max={new Date().getFullYear()}
+            defaultValue={listing?.year_manufactured || ""}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             placeholder="2020"
           />
@@ -569,7 +668,13 @@ export function CreateListingForm({ userId }: Props) {
           disabled={loading}
           className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
         >
-          {loading ? "Creating..." : "Create Listing"}
+          {loading
+            ? isEditing
+              ? "Updating..."
+              : "Creating..."
+            : isEditing
+            ? "Update Listing"
+            : "Create Listing"}
         </button>
       </div>
     </form>
