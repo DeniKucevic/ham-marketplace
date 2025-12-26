@@ -68,6 +68,7 @@ export type Database = {
           qth_locator: string | null
           search_vector: unknown
           serial_number: string | null
+          sold_to: string | null
           status: Database["public"]["Enums"]["listing_status"] | null
           title: string
           updated_at: string | null
@@ -95,6 +96,7 @@ export type Database = {
           qth_locator?: string | null
           search_vector?: unknown
           serial_number?: string | null
+          sold_to?: string | null
           status?: Database["public"]["Enums"]["listing_status"] | null
           title: string
           updated_at?: string | null
@@ -122,6 +124,7 @@ export type Database = {
           qth_locator?: string | null
           search_vector?: unknown
           serial_number?: string | null
+          sold_to?: string | null
           status?: Database["public"]["Enums"]["listing_status"] | null
           title?: string
           updated_at?: string | null
@@ -130,6 +133,13 @@ export type Database = {
           year_manufactured?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "listings_sold_to_fkey"
+            columns: ["sold_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listings_user_id_fkey"
             columns: ["user_id"]

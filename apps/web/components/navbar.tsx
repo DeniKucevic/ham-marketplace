@@ -45,10 +45,10 @@ export function Navbar({ user, profile }: Props) {
                   My Listings
                 </Link>
                 <Link
-                  href="/favorites"
+                  href="/my-purchases"
                   className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
-                  Favorites
+                  My Purchases
                 </Link>
               </div>
             )}

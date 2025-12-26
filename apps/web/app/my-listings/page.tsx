@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { createClient } from "@/lib/supabase/server";
-import { BrowseListing } from "@/types/listing";
+import { MyListing } from "@/types/listing";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MyListingsClient } from "./my-listings-client";
@@ -59,10 +59,7 @@ export default async function MyListingsPage() {
           </Link>
         </div>
 
-        <MyListingsClient
-          listings={listings as BrowseListing[]}
-          userId={user.id}
-        />
+        <MyListingsClient listings={listings as MyListing[]} userId={user.id} />
       </main>
     </div>
   );

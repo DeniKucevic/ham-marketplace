@@ -2,15 +2,17 @@
 
 import { DeleteListingButton } from "@/components/delete-listing-button";
 import { DeleteListingModal } from "@/components/delete-listing-modal";
+import { MarkAsSoldButton } from "@/components/mark-as-sold-button";
+import { RateUserButton } from "@/components/rate-user-button";
 import { createClient } from "@/lib/supabase/client";
-import { BrowseListing } from "@/types/listing";
+import { BrowseListing, MyListing } from "@/types/listing";
 import { formatPrice } from "@ham-marketplace/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 interface Props {
-  listings: BrowseListing[];
+  listings: MyListing[];
   userId: string;
 }
 
@@ -27,13 +29,14 @@ export function MyListingsClient({ listings, userId }: Props) {
 
   const filteredListings = useMemo(() => {
     if (filter === "all") return listings;
+    if (filter === "active")
+      return listings.filter((l) => l.status === "active");
+    if (filter === "sold") return listings.filter((l) => l.status === "sold");
     return listings;
   }, [listings, filter]);
 
-  const handleDeleteClick = (listing: BrowseListing) => {
-    setListingToDelete(listing);
-    setDeleteModalOpen(true);
-  };
+  const activeCount = listings.filter((l) => l.status === "active").length;
+  const soldCount = listings.filter((l) => l.status === "sold").length;
 
   const handleDeleteConfirm = async () => {
     if (!listingToDelete) return;
@@ -110,6 +113,26 @@ export function MyListingsClient({ listings, userId }: Props) {
             >
               All ({listings.length})
             </button>
+            <button
+              onClick={() => setFilter("active")}
+              className={`border-b-2 px-1 py-3 text-sm font-medium ${
+                filter === "active"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              }`}
+            >
+              Active ({activeCount})
+            </button>
+            <button
+              onClick={() => setFilter("sold")}
+              className={`border-b-2 px-1 py-3 text-sm font-medium ${
+                filter === "sold"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              }`}
+            >
+              Sold ({soldCount})
+            </button>
           </nav>
         </div>
 
@@ -174,6 +197,23 @@ export function MyListingsClient({ listings, userId }: Props) {
                     {formatPrice(listing.price, listing.currency || "EUR")}
                   </p>
                   <div className="flex gap-2">
+                    {/* Mark as Sold - samo za active */}
+                    {listing.status === "active" && (
+                      <MarkAsSoldButton
+                        listingId={listing.id}
+                        listingTitle={listing.title}
+                      />
+                    )}
+
+                    {/* Rate button - samo za sold */}
+                    {listing.status === "sold" && listing.sold_to && (
+                      <RateUserButton
+                        listingId={listing.id}
+                        ratedUserId={listing.sold_to}
+                        currentUserId={userId}
+                      />
+                    )}
+
                     <Link
                       href={`/listings/${listing.id}/edit`}
                       className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
