@@ -1,6 +1,6 @@
 {
   "name": "@ham-marketplace/shared",
-  "main": "./dist/index.js",
+  "main": "src/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
@@ -10,6 +10,6 @@
     "dist"
   ],
   "dependencies": {
-    "zod": "^4.2.1"
+    "zod": "^3.25.76"
   }
 }
