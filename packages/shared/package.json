@@ -8,5 +8,8 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "zod": "^4.2.1"
+  }
 }
