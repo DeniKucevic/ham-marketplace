@@ -1,6 +1,10 @@
 import { getDisplayName } from "@/lib/display-name";
 import { BrowseListing } from "@/types/listing";
-import { formatPrice } from "@ham-marketplace/shared";
+import {
+  formatPrice,
+  getCountryFlag,
+  getCountryName,
+} from "@ham-marketplace/shared";
 import Image from "next/image";
 import Link from "next/link";
 import { ImagePlaceholder } from "./image-placeholder";
@@ -37,6 +41,37 @@ export function ListingListCard({ listing }: Props) {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {listing.title}
           </h3>
+
+          {listing.profiles?.location_country && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <span>
+                {getCountryFlag(listing.profiles.location_country)}{" "}
+                {listing.profiles.location_city
+                  ? `${listing.profiles.location_city}, `
+                  : ""}
+                {getCountryName(listing.profiles.location_country)}
+              </span>
+            </div>
+          )}
 
           {listing.description && (
             <p className="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">

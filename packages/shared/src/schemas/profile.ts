@@ -6,8 +6,8 @@ export const CallsignSchema = z
   .transform((val) => val.toUpperCase());
 
 export const CreateProfileSchema = z.object({
-  callsign: CallsignSchema,
-  display_name: z.string().min(2).max(50).optional(),
+  callsign: CallsignSchema.optional(),
+  display_name: z.string().min(2).max(100),
   bio: z.string().max(500).optional(),
   location: z
     .object({
@@ -19,6 +19,12 @@ export const CreateProfileSchema = z.object({
     .string()
     .regex(/^[A-R]{2}[0-9]{2}[A-X]{2}$/i)
     .optional(),
+  email: z.string().email().max(255).optional(),
+  phone: z.string().max(50).optional(),
+  show_email: z.boolean().default(false),
+  show_phone: z.boolean().default(false),
+  location_city: z.string().max(100).optional(),
+  location_country: z.string().max(100).optional(),
 });
 
 export const UpdateProfileSchema = CreateProfileSchema.partial();

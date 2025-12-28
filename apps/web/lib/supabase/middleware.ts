@@ -2,10 +2,16 @@ import type { Database } from "@ham-marketplace/shared";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
-  const supabaseResponse = NextResponse.next({
-    request,
-  });
+export async function updateSession(
+  request: NextRequest,
+  response?: NextResponse
+) {
+  // Use provided response or create new one
+  const supabaseResponse =
+    response ||
+    NextResponse.next({
+      request,
+    });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -85,10 +85,11 @@ type Listing = Database["public"]["Tables"]["listings"]["Row"];
 
 interface Props {
   userId: string;
-  listing?: Listing; // If provided = editing, if not = creating
+  listing?: Listing;
+  locale: string;
 }
 
-export function ListingForm({ userId, listing }: Props) {
+export function ListingForm({ userId, listing, locale }: Props) {
   const router = useRouter();
   const isEditing = !!listing;
 
@@ -288,7 +289,7 @@ export function ListingForm({ userId, listing }: Props) {
           .eq("user_id", userId);
 
         if (dbError) throw dbError;
-        router.push(`/listings/${listing.id}`);
+        router.push(`/${locale}/listings/${listing.id}`);
       } else {
         // Create
         const { error: dbError, data: newListing } = await supabase
@@ -298,7 +299,7 @@ export function ListingForm({ userId, listing }: Props) {
           .single();
 
         if (dbError) throw dbError;
-        router.push(`/listings/${newListing.id}`);
+        router.push(`/${locale}/listings/${newListing.id}`);
       }
 
       router.refresh();
@@ -339,6 +340,8 @@ export function ListingForm({ userId, listing }: Props) {
                 <Image
                   src={image}
                   alt={`Existing ${index + 1}`}
+                  width={300}
+                  height={300}
                   className="h-32 w-full rounded-lg object-cover"
                   unoptimized
                 />
@@ -402,11 +405,11 @@ export function ListingForm({ userId, listing }: Props) {
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {newImagePreviews.map((preview, index) => (
               <div key={index} className="relative">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={preview}
                   alt={`Preview ${index + 1}`}
                   className="h-32 w-full rounded-lg object-cover"
-                  unoptimized
                 />
                 <button
                   type="button"

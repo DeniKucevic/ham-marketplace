@@ -1,8 +1,12 @@
+// components/navbar.tsx
+
 "use client";
 
 import { getDisplayName } from "@/lib/display-name";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
+import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
 
 interface Props {
@@ -14,18 +18,19 @@ interface Props {
     callsign: string;
     display_name: string | null;
   } | null;
+  locale: string;
 }
 
-export function Navbar({ user, profile }: Props) {
+export function Navbar({ user, profile, locale }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
+  const t = useTranslations("nav");
   return (
     <nav className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
           <div className="flex items-center gap-8">
             <Link
-              href="/"
+              href={`/${locale}`}
               className="text-xl font-bold text-gray-900 dark:text-white"
             >
               HAM Marketplace
@@ -33,22 +38,22 @@ export function Navbar({ user, profile }: Props) {
             {user && (
               <div className="hidden md:flex md:gap-6">
                 <Link
-                  href="/"
+                  href={`/${locale}`}
                   className="text-sm font-medium text-gray-900 dark:text-white"
                 >
-                  Browse
+                  {t("browse")}
                 </Link>
                 <Link
-                  href="/my-listings"
+                  href={`/${locale}/my-listings`}
                   className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
-                  My Listings
+                  {t("myListings")}
                 </Link>
                 <Link
-                  href="/my-purchases"
+                  href={`/${locale}/my-purchases`}
                   className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
-                  My Purchases
+                  {t("myPurchases")}
                 </Link>
               </div>
             )}
@@ -57,13 +62,13 @@ export function Navbar({ user, profile }: Props) {
             {user && (
               <>
                 <Link
-                  href="/listings/new"
+                  href={`/${locale}/listings/new`}
                   className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
                 >
-                  Create Listing
+                  {t("createListing")}
                 </Link>
                 <ThemeToggle />
-
+                <LanguageSwitcher currentLocale={locale} />
                 {/* User Dropdown */}
                 <div className="relative hidden md:block">
                   <button
@@ -102,18 +107,20 @@ export function Navbar({ user, profile }: Props) {
                       {/* Dropdown menu */}
                       <div className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800">
                         <Link
-                          href={`/profile/${profile?.callsign || user.id}`}
+                          href={`/${locale}/profile/${
+                            profile?.callsign || user.id
+                          }`}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                           onClick={() => setDropdownOpen(false)}
                         >
-                          View Profile
+                          {t("viewProfile")}
                         </Link>
                         <Link
-                          href="/settings"
+                          href={`/${locale}/settings`}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                           onClick={() => setDropdownOpen(false)}
                         >
-                          Settings
+                          {t("settings")}
                         </Link>
                         <hr className="my-1 border-gray-200 dark:border-gray-700" />
                         <form action="/auth/signout" method="post">
@@ -121,7 +128,7 @@ export function Navbar({ user, profile }: Props) {
                             type="submit"
                             className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                           >
-                            Sign Out
+                            {t("signOut")}
                           </button>
                         </form>
                       </div>
@@ -133,11 +140,12 @@ export function Navbar({ user, profile }: Props) {
             {!user && (
               <>
                 <ThemeToggle />
+                <LanguageSwitcher currentLocale={locale} />
                 <Link
-                  href="/sign-in"
+                  href={`/${locale}/sign-in`}
                   className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
-                  Sign in
+                  {t("signIn")}
                 </Link>
               </>
             )}

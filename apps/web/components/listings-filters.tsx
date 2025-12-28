@@ -1,5 +1,7 @@
 "use client";
 
+import { COUNTRIES } from "@ham-marketplace/shared";
+
 interface Props {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -11,8 +13,12 @@ interface Props {
   maxPrice: string;
   onMinPriceChange: (price: string) => void;
   onMaxPriceChange: (price: string) => void;
-  sortBy: string; // ← DODAJ
-  onSortChange: (sort: string) => void; // ← DODAJ
+  country: string;
+  onCountryChange: (country: string) => void;
+  city: string;
+  onCityChange: (city: string) => void;
+  sortBy: string;
+  onSortChange: (sort: string) => void;
   onClearFilters: () => void;
 }
 
@@ -45,6 +51,23 @@ const CONDITIONS = [
   { value: "parts_repair", label: "For Parts/Repair" },
 ];
 
+const POPULAR_COUNTRIES = [
+  "Serbia",
+  "Croatia",
+  "Bosnia and Herzegovina",
+  "Slovenia",
+  "North Macedonia",
+  "Montenegro",
+  "Germany",
+  "Austria",
+  "Italy",
+  "Hungary",
+  "Romania",
+  "Bulgaria",
+  "Greece",
+  "Poland",
+];
+
 export function ListingsFilters({
   searchQuery,
   onSearchChange,
@@ -56,6 +79,10 @@ export function ListingsFilters({
   maxPrice,
   onMinPriceChange,
   onMaxPriceChange,
+  country,
+  onCountryChange,
+  city,
+  onCityChange,
   sortBy,
   onSortChange,
   onClearFilters,
@@ -72,7 +99,9 @@ export function ListingsFilters({
     selectedCategory !== "" ||
     selectedCondition.length > 0 ||
     minPrice !== "" ||
-    maxPrice !== "";
+    maxPrice !== "" ||
+    country !== "" ||
+    city !== "";
 
   return (
     <div className="space-y-6">
@@ -112,6 +141,46 @@ export function ListingsFilters({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search by title, manufacturer, model..."
           className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+
+      {/* Location Filters */}
+      <div>
+        <label
+          htmlFor="country"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Country
+        </label>
+        <select
+          id="country"
+          value={country}
+          onChange={(e) => onCountryChange(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+        >
+          <option value="">All Countries</option>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.flag} {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label
+          htmlFor="city"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          City (Optional)
+        </label>
+        <input
+          type="text"
+          id="city"
+          placeholder="Belgrade, Zagreb..."
+          value={city}
+          onChange={(e) => onCityChange(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
         />
       </div>
 

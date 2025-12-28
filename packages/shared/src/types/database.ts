@@ -276,6 +276,8 @@ export type Database = {
           rated_user_id: string
           rater_user_id: string
           rating: number
+          response: string | null
+          response_at: string | null
         }
         Insert: {
           comment?: string | null
@@ -285,6 +287,8 @@ export type Database = {
           rated_user_id: string
           rater_user_id: string
           rating: number
+          response?: string | null
+          response_at?: string | null
         }
         Update: {
           comment?: string | null
@@ -294,6 +298,8 @@ export type Database = {
           rated_user_id?: string
           rater_user_id?: string
           rating?: number
+          response?: string | null
+          response_at?: string | null
         }
         Relationships: [
           {
