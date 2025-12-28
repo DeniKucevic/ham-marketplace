@@ -1,5 +1,0 @@
-{
-  "installCommand": "bash vercel-build.sh",
-  "buildCommand": "echo 'Build already completed in install step'",
-  "outputDirectory": "apps/web/.next"
-}
