@@ -2,6 +2,10 @@
   "name": "ham-marketplace",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "pnpm": "9.x"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -12,6 +16,5 @@
   },
   "devDependencies": {
     "turbo": "^2.7.2"
-  },
-  "packageManager": "pnpm@9.0.0"
+  }
 }
