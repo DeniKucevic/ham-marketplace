@@ -1,6 +1,5 @@
 {
   "version": 1,
-  "rootDirectory": ".",
   "builds": [
     {
       "src": "apps/web/package.json",
@@ -10,9 +9,7 @@
       }
     }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/apps/web/$1" }
-  ],
+  "routes": [{ "src": "/(.*)", "dest": "/apps/web/$1" }],
   "installCommand": "pnpm install",
   "buildCommand": "pnpm --filter @ham-marketplace/shared build && pnpm --filter apps/web build"
 }
