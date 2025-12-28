@@ -3,6 +3,7 @@
 import { ListingGridCard } from "@/components/listing-grid-card";
 import { ListingListCard } from "@/components/listing-list-card";
 import { ViewMode, ViewToggle } from "@/components/view-toggle";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { getDisplayName } from "@/lib/display-name";
 import { createClient } from "@/lib/supabase/client";
 import { BrowseListing } from "@/types/listing";
@@ -42,7 +43,10 @@ export function PublicProfileClient({
   isLoggedIn,
   isOwnProfile,
 }: Props) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode, viewMounted] = useLocalStorage<ViewMode>(
+    "listings-view-mode",
+    "grid"
+  );
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [ratingsPage, setRatingsPage] = useState(1);
   const [totalRatings, setTotalRatings] = useState(0);
@@ -422,7 +426,7 @@ export function PublicProfileClient({
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {isOwnProfile ? "Your Listings" : "Listings"} ({listings.length})
         </h2>
-        <ViewToggle value={viewMode} onChange={setViewMode} />
+        {viewMounted && <ViewToggle value={viewMode} onChange={setViewMode} />}
       </div>
 
       {listings.length === 0 && (

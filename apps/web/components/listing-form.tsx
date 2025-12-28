@@ -1,5 +1,6 @@
 "use client";
 
+import { compressImages, validateImageFile } from "@/lib/image-compression";
 import { createClient } from "@/lib/supabase/client";
 import {
   CreateListingSchema,
@@ -7,6 +8,7 @@ import {
   getModelsByCategory,
   POPULAR_MANUFACTURERS,
 } from "@ham-marketplace/shared";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ZodError } from "zod";
@@ -90,6 +92,7 @@ export function ListingForm({ userId, listing }: Props) {
   const router = useRouter();
   const isEditing = !!listing;
 
+  const [compressing, setCompressing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,7 +123,7 @@ export function ListingForm({ userId, listing }: Props) {
     setModelValue("");
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const totalImages =
       existingImages.length + newImageFiles.length + files.length;
@@ -130,15 +133,41 @@ export function ListingForm({ userId, listing }: Props) {
       return;
     }
 
-    setNewImageFiles((prev) => [...prev, ...files]);
+    // Validate files
+    for (const file of files) {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        setError(validation.error || "Invalid file");
+        return;
+      }
+    }
 
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewImagePreviews((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    setCompressing(true);
+    setError(null);
+
+    try {
+      // Compress images
+      const compressedFiles = await compressImages(files, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+      });
+
+      setNewImageFiles((prev) => [...prev, ...compressedFiles]);
+
+      // Create previews
+      compressedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewImagePreviews((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    } catch (err) {
+      console.error("Image compression error:", err);
+      setError("Failed to process images. Please try again.");
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const removeExistingImage = (index: number) => {
@@ -307,11 +336,11 @@ export function ListingForm({ userId, listing }: Props) {
           <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {existingImages.map((image, index) => (
               <div key={index} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={image}
                   alt={`Existing ${index + 1}`}
                   className="h-32 w-full rounded-lg object-cover"
+                  unoptimized
                 />
                 <button
                   type="button"
@@ -350,26 +379,34 @@ export function ListingForm({ userId, listing }: Props) {
         <div className="mt-2">
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
             multiple
             onChange={handleImageChange}
-            disabled={isEditing && existingImages.length >= 10}
+            disabled={(isEditing && existingImages.length >= 10) || compressing}
             className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50 dark:text-gray-400 dark:file:bg-blue-900/20 dark:file:text-blue-400"
           />
         </div>
+
+        {compressing && (
+          <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+            Compressing images... Please wait.
+          </p>
+        )}
+
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Upload up to 10 images. Listings with photos get more views!
+          Upload up to 10 images (JPG, PNG, WebP). Images will be automatically
+          compressed. Max 10MB per file.
         </p>
 
         {newImagePreviews.length > 0 && (
           <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {newImagePreviews.map((preview, index) => (
               <div key={index} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={preview}
                   alt={`Preview ${index + 1}`}
                   className="h-32 w-full rounded-lg object-cover"
+                  unoptimized
                 />
                 <button
                   type="button"
@@ -665,13 +702,15 @@ export function ListingForm({ userId, listing }: Props) {
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || compressing}
           className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
         >
           {loading
             ? isEditing
               ? "Updating..."
               : "Creating..."
+            : compressing
+            ? "Compressing..."
             : isEditing
             ? "Update Listing"
             : "Create Listing"}

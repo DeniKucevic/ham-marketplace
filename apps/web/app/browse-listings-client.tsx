@@ -5,6 +5,7 @@ import { ListingListCard } from "@/components/listing-list-card";
 import { ListingsFilters } from "@/components/listings-filters";
 import { Pagination } from "@/components/pagination";
 import { ViewMode, ViewToggle } from "@/components/view-toggle";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { BrowseListing } from "@/types/listing";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -22,12 +23,10 @@ export function BrowseListingsClient({
   totalPages,
   totalCount,
 }: Props) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-
-  const handleViewModeChange = (mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem("listings-view-mode", mode);
-  };
+  const [viewMode, setViewMode, viewMounted] = useLocalStorage<ViewMode>(
+    "listings-view-mode",
+    "grid"
+  );
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -173,7 +172,9 @@ export function BrowseListingsClient({
           <p className="text-gray-600 dark:text-gray-400">
             Showing {filteredAndSortedListings.length} of {totalCount} listings
           </p>
-          <ViewToggle value={viewMode} onChange={handleViewModeChange} />
+          {viewMounted && (
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+          )}
         </div>
 
         {/* No results */}

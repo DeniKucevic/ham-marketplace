@@ -1,7 +1,9 @@
 import { getDisplayName } from "@/lib/display-name";
 import { BrowseListing } from "@/types/listing";
 import { formatPrice } from "@ham-marketplace/shared";
+import Image from "next/image";
 import Link from "next/link";
+import { ImagePlaceholder } from "./image-placeholder";
 
 interface Props {
   listing: BrowseListing;
@@ -15,12 +17,18 @@ export function ListingListCard({ listing }: Props) {
     >
       {/* Image */}
       <div className="h-32 w-32 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={listing.images[0]}
-          alt={listing.title}
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
+        {listing.images && listing.images.length > 0 ? (
+          <Image
+            src={listing.images[0]}
+            alt={listing.title}
+            width={400}
+            height={300}
+            className="h-48 w-full object-cover"
+            unoptimized
+          />
+        ) : (
+          <ImagePlaceholder size="lg" />
+        )}
       </div>
 
       {/* Content */}
