@@ -53,7 +53,7 @@ importers:
   apps/web:
     dependencies:
       '@ham-marketplace/shared':
-        specifier: file:../../packages/shared
+        specifier: workspace:*
         version: link:../../packages/shared
       '@supabase/ssr':
         specifier: ^0.8.0
