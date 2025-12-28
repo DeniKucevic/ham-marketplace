@@ -11,6 +11,12 @@
     "build": "turbo run build",
     "lint": "turbo run lint"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "@parcel/watcher"
+    ]
+  },
   "dependencies": {
     "zod": "^3.25.76"
   },
